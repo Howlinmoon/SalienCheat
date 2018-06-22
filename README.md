@@ -23,6 +23,6 @@ You can also provide token directly in CLI, to ease running multiple accounts: `
 ## Python
 
 0. (optional) Setup virtual env: `virtualenv env && source env/bin/activate`
-1. `pip install requests tqdm`
+1. `pip install requests tqdm` (LINUX/POSIX: install the 'python-tqdm' package)
 2. Place your token in the script in place of the X's (more reliable on other Operating Systems than the Token File)
 3. Run the script: `python cheat.py`
