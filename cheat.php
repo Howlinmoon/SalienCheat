@@ -328,21 +328,6 @@ function GetFirstAvailablePlanet( $SkippedPlanets )
 
 function LeaveCurrentGame( $Token, $LeaveCurrentPlanet )
 {
-	do
-	{
-		$Data = SendPOST( 'ITerritoryControlMinigameService/GetPlayerInfo', 'access_token=' . $Token );
-
-		if( !isset( $Data[ 'response' ][ 'clan_info' ][ 'accountid' ] ) || $Data[ 'response' ][ 'clan_info' ][ 'accountid' ] != 4777282 )
-		{
-			// Please do not change our clanid if you are going to use this script
-			// If you want to cheat for your own group, come up with up with your own approach, thank you
-			SendPOST( 'ITerritoryControlMinigameService/RepresentClan', 'clanid=4777282&access_token=' . $Token );
-		}
-		else
-		{
-			break;
-		}
-	}
 	while( true );
 
 	Msg( 'Current level is {yellow}' . $Data[ 'response' ][ 'level' ] . '{normal} with score of {yellow}' . $Data[ 'response' ][ 'score' ] );
