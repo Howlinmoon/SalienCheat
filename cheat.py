@@ -1,4 +1,4 @@
-"""Plays SALIENT for you
+""" Play SALIENT for you
 
 pip install requests tqdm
 """
@@ -9,7 +9,7 @@ import sys
 import json
 import logging
 from io import open
-from time import sleep, time
+from time import sleep
 from getpass import getpass
 
 import requests
@@ -26,44 +26,17 @@ except:
 
 
 def get_access_token(force_input=False):
-    token_re = re.compile("^[a-z0-9]{32}$")
-    token_path = './token.txt'
-    token = ''
 
-    if not force_input:
-        if token_re.match(sys.argv[-1]):
-            token = sys.argv[-1]
-        else:
-            if os.path.isfile(token_path):
-                data = open(token_path, 'r', encoding='utf-8').read()
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#  Visit https://steamcommunity.com/saliengame/gettoken
+#  Copy the token value and paste in place of the Xs.\n
+#  
 
-                try:
-                    token = json.loads(data)['token']
-                except:
-                    token = data.strip()
-
-                if not token_re.match(token):
-                    token = ''
-                else:
-                    LOG.info("Loaded token from token.txt")
-
-    if not token:
-        token = _input("Login to steamcommunity.com\n"
-                       "Visit https://steamcommunity.com/saliengame/gettoken\n"
-                       "Copy the token value and paste here.\n"
-                       "---\n"
-                       "Token: "
-                       ).strip()
-
-        while not token_re.match(token):
-            token = _input("Enter valid token: ").strip()
-
-    with open(token_path, 'w', encoding='utf-8') as fp:
-        if sys.version_info < (3,):
-            token = token.decode('utf-8')
-        fp.write(token)
-
+    token = 'xxxxxxxxxxxxxxxxxxxxx'
     return token
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 
 class Saliens(requests.Session):
     api_url = 'https://community.steam-api.com/%s/v0001/'
@@ -153,20 +126,14 @@ class Saliens(requests.Session):
 
     def refresh_planet_info(self):
         if 'active_planet' in self.player_info:
-            self.planet = self.get_planet(self.player_info['active_planet'])
+            self.planet = self.sget('ITerritoryControlMinigameService/GetPlanet',
+                                    {'id': self.player_info['active_planet']},
+                                    retry=True,
+                                    ).get('planets', [{}])[0]
         else:
             self.planet = {}
 
         return self.planet
-
-    def get_planet(self, pid):
-        return self.sget('ITerritoryControlMinigameService/GetPlanet',
-                          {'id': pid},
-                          retry=True,
-                          ).get('planets', [{}])[0]
-
-    def represent_clan(self, clan_id):
-        return self.spost('ITerritoryControlMinigameService/RepresentClan', {'clanid': clan_id})
 
     def report_score(self, score):
         return self.spost('ITerritoryControlMinigameService/ReportScore', {'score': score})
@@ -180,11 +147,9 @@ class Saliens(requests.Session):
     def join_zone(self, pos):
         return self.spost('ITerritoryControlMinigameService/JoinZone', {'zone_position': pos})
 
-    def leave_all(self):
+    def leave_current_zone(self):
         if 'active_zone_game' in self.player_info:
             self.spost('IMiniGameService/LeaveGame', {'gameid': self.player_info['active_zone_game']}, retry=False)
-        if 'active_planet' in self.player_info:
-            self.spost('IMiniGameService/LeaveGame', {'gameid': self.player_info['active_planet']}, retry=False)
 
     def print_player_info(self):
         player_info = self.player_info
@@ -193,10 +158,9 @@ class Saliens(requests.Session):
             self.level_pbar.desc = "Player Level {level}".format(**player_info)
             self.level_pbar.total = int(player_info['next_level_score'])
             self.level_pbar.n = int(player_info['score'])
-            sys.stdout.write(str(self.level_pbar))
+            print(self.level_pbar)
         else:
             self.level_pbar = tqdm(ascii=True,
-                                   file=sys.stdout,
                                    position=0,
                                    dynamic_ncols=True,
                                    desc="Player Level {level}".format(**player_info),
@@ -204,8 +168,6 @@ class Saliens(requests.Session):
                                    initial=int(player_info['score']),
                                    bar_format='{desc:<22} {percentage:3.0f}% |{bar}| {remaining:>10}',
                                    )
-        sys.stdout.write("\n")
-        sys.stdout.flush()
 
     def print_planet_progress(self):
         planet = self.planet
@@ -217,10 +179,9 @@ class Saliens(requests.Session):
         if getattr(self, 'planet_pbar', None):
             self.planet_pbar.desc="Planet ({id}) progress".format(**planet)
             self.planet_pbar.n = current_progress
-            sys.stdout.write(str(self.planet_pbar))
+            print(self.planet_pbar)
         else:
             self.planet_pbar = tqdm(ascii=True,
-                                    file=sys.stdout,
                                     position=0,
                                     dynamic_ncols=True,
                                     desc="Planet ({id}) progress".format(**planet),
@@ -228,8 +189,6 @@ class Saliens(requests.Session):
                                     initial=current_progress,
                                     bar_format='{desc:<22} {percentage:3.0f}% |{bar}| {remaining:>10}',
                                     )
-        sys.stdout.write("\n")
-        sys.stdout.flush()
 
     def print_zone_progress(self, zone=None):
         if not self.planet:
@@ -243,10 +202,9 @@ class Saliens(requests.Session):
         if getattr(self, 'zone_pbar', None):
             self.zone_pbar.desc="Zone ({zone_position}) progress".format(**zone)
             self.zone_pbar.n = current_progress
-            sys.stdout.write(str(self.zone_pbar))
+            print(self.zone_pbar)
         else:
             self.zone_pbar = tqdm(ascii=True,
-                                  file=sys.stdout,
                                   position=0,
                                   dynamic_ncols=True,
                                   desc="Zone ({zone_position}) progress".format(**zone),
@@ -254,8 +212,6 @@ class Saliens(requests.Session):
                                   initial=current_progress,
                                   bar_format='{desc:<22} {percentage:3.0f}% |{bar}| {remaining:>10}',
                                   )
-        sys.stdout.write("\n")
-        sys.stdout.flush()
 
 # ------- MAIN ----------
 
@@ -267,48 +223,29 @@ while not game.is_access_token_valid():
 
 # display current stats
 LOG.info("Getting player info...")
-game.represent_clan(4777282)
 game.refresh_player_info()
 game.print_player_info()
 
 # join battle
 while True:
     LOG.info("Finding planet...")
-    game.refresh_player_info()
-    game.leave_all()
 
-    # locate uncaptured planet and join it
-    planets = game.get_planets()
-    planets = list(filter(lambda x: not x['state']['captured'], planets))
+    if 'active_planet' not in game.player_info:
+        # locate uncaptured planet and join it
+        planets = game.get_planets()
+        planets = list(filter(lambda x: x['state']['captured'] == False, planets))
+        planets = sorted(planets, reverse=True, key=lambda x: x['state']['difficulty'])
+        planets = sorted(planets, reverse=False, key=lambda x: x['state']['current_players'])
 
-    LOG.info("Found %s uncaptured planets: %s", len(planets), list(map(lambda x: int(x['id']), planets)))
+        if not planets:
+            LOG.error("No uncaputred planets left :(")
+            raise SystemExit
 
-    planets = list(map(lambda x: game.get_planet(x['id']), planets))
-
-    for planet in planets:
-        planet['n_hard_zones'] = list(map(lambda x: x['difficulty'], filter(lambda y: not y['captured'], planet['zones']))).count(3)
-
-    planets = sorted(planets, reverse=True, key=lambda x: x['n_hard_zones'])
-#   planets = sorted(planets, reverse=False, key=lambda x: x['state']['current_players'])
-
-    if not planets:
-        LOG.error("No uncaptured planets left :(")
-        raise SystemExit
-
-    LOG.info("Joining planet %s..", planets[0]['id'])
-
-    planet_id = planets[0]['id']
-    game.join_planet(planet_id)
-    deadline = time() + 60 * 30
+        LOG.info("Joining planet..")
+        game.join_planet(planets[0]['id'])
 
     game.refresh_player_info()
     game.refresh_planet_info()
-
-    # if join didnt work for retry
-    if game.planet['id'] != planet_id:
-        sleep(2)
-        continue
-
     LOG.info("Planet name: {name} ({id})".format(id=game.planet['id'], **game.planet['state']))
     LOG.info("Current players: {current_players}".format(**game.planet['state']))
     LOG.info("Giveaway AppIDs: {giveaway_apps}".format(**game.planet))
@@ -316,8 +253,10 @@ while True:
 
     # zone
     LOG.info("Finding conflict zone...")
+    if 'active_zone_position' in game.player_info:
+        game.leave_current_zone()
 
-    while time() < deadline and game.planet and not game.planet['state']['captured']:
+    while game.planet and not game.planet['state']['captured']:
         zones = game.planet['zones']
         zones = list(filter(lambda x: x['captured'] == False, zones))
         boss_zones = list(filter(lambda x: x['type'] == 4, zones))
@@ -336,10 +275,8 @@ while True:
         zone_id = zones[0]['zone_position']
         difficulty = zones[0]['difficulty']
 
-        while time() < deadline and game.planet and not game.planet['zones'][zone_id]['captured']:
+        while game.planet and not game.planet['zones'][zone_id]['captured']:
             game.print_player_info()
-            if 'clan_info' not in game.player_info or game.player_info['clan_info']['accountid'] != 4777282:
-                game.represent_clan(4777282)
             game.print_planet_progress()
             game.print_zone_progress(zone_id)
 
